@@ -1,3 +1,5 @@
 {
-  "test": true
+  "server": {
+    "port": 3500
+  }
 }

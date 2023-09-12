@@ -3,5 +3,8 @@
     "config": "^3.3.9",
     "prompt-sync": "^4.2.0"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
 }
