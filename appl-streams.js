@@ -1,36 +1,29 @@
-import fs from 'node:fs/promises';
 import http from 'node:http';
+import config from 'config';
+import {URL} from 'node:url';
+import RouterDocText from './routes/Router.js';
+import DocTextView from './view/DocTextView.js';
 
-//stream theory
-//writable stream(write)
-//readable stream(read)
-//duplex (write, read) socket
-//transform ZipLibrary
-//Example:
-// <readable stream>.pipe(<writable stream>)
-//<socket stream>.map<request => protocol.getResponse(request)>.pipe(<socket stream>)
-//pipeline(<readable stream>, <transform stream>, <writable stream>)
+const SERVER_PORT = 'server.port'
+const server = http.createServer();
+const port = process.env.PORT || config.has(SERVER_PORT) && config.get(SERVER_PORT) || 0;
+server.listen(port, () => console.log(`server listening on port ${server.address().port}`));
 
-const isComments = process.arg[2] == 'comments'
-const fileInput = process.argv[2] || 'appl-streams.js';
-const fileOutput = process.argv[3] || 'appl-streams-out';
-const handlerInput = await fs.open(fileInput);
-const handlerOutput = await fs.open(fileOutput, 'w');
-// handlerInput.readFile('utf-8').then(data => console.log(data))
-const streamOutput = handlerOutput.createWriteStream();
+const router = new RouterDocText(server);
+const docTextView = new DocTextView();
+server.on('request', (req, response) => {
+  response.setHeader('content-type', 'text/html')
+  const request = new URL(`http://${req.headers.host}${req.url}`);
+  if(!router.getRoutes().includes(request.pathname)){
+    docTextView.renderError(request.pathname + " unknown operation", response);
+    return;
+  }
+  
+  console.log(`request type: ${request.pathname}`)
+  server.emit(request.pathname, request.searchParams, response);
+})
 
-getStreamWith(handlerInput, isComments).pipe(streamOutput);
 
-function getStreamWith(handler, isComments){
-  let streamInput = handler.createReadStream();
-  streamInput.setEncoding('utf-8')
-  streamInput = streamInput.flatMap(chunk => chunk.split('\n')).filter(line => {
-    const res = line.trim().startsWith('//');
-    return isComments ? res : !res;
-  })
-  .map(line=>isComments ? line.substr('//') : line);
-  return streamInput;
-}
 
 
 
