@@ -1,3 +1,5 @@
 {
-  "test": false
+  "mongodb": {
+    "uri": "mongo_uri_prod"
+  }
 }

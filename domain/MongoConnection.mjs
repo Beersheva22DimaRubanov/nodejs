@@ -9,6 +9,6 @@ export default class MongoConnection{
   }
 
   getCollection(collectionName){
-    return this.#db.getCollection(collectionName);
+    return this.#db.collection(collectionName);
   }
 }
