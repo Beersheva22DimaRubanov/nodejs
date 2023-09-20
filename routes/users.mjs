@@ -2,26 +2,58 @@ import express from 'express';
 import Joi from 'joi'
 import { validate } from '../middlewear/validation.mjs';
 import UserService from '../service/UserService.mjs';
-import config from 'config'
+import asyncHandler from 'express-async-handler'
+import authVerification from '../middlewear/authVerification.mjs';
+import valid from '../middlewear/valid.mjs';
 
 export const users = express.Router();
 
-const userService = new UserService(process.env.ATLAS_URI_ACCOUNTS_TEST, config.get('mongodb.db'))
-const  schema = Joi.object({
-  username: Joi.string().alphanum().min(5).required(),
+const userService = new UserService()
+const schema = Joi.object({
+  username: Joi.string().email().required(),
   password: Joi.string().min(5).required(),
   roles: Joi.array().items(Joi.string().valid('ADMIN', 'USER'))
 })
-users.use(validate(schema))
-users.post('/sign-up', async (req, res) => {
-  if (!req.validated) {
-    res.status(500);
-    throw("This api requires validation")
-  } 
-  if (req.joiError) {
-    res.status(400)
-   throw (req.joiError);
-  }
+users.use(validate(schema));
+users.post('', authVerification("ADMIN_ACCOUNTS"), valid,  asyncHandler(
+  async (req, res) => {
+    if (!req.validated) {
+      res.status(500);
+      throw ("This api requires validation")
+    }
+    if (req.joiError) {
+      res.status(400)
+      throw (req.joiError);
+    }
+    const accountRes = await userService.addAccount(req.body);
+    if (accountRes == null) {
+      res.status(400);
+      throw `account ${req.body.username} already exists`
+    }
+    res.status(201).send(accountRes);
+  })
+);
 
-  res.status(201).send(await userService.addAccount(req.body));
-});
+users.get("/:username", authVerification("ADMIN_ACCOUNTS", "ADMIN", "USER"), asyncHandler(
+  async (req, res) => {
+    const username = req.params.username;
+    const account = await userService.getAccount(username);
+    if (!account) {
+      res.status(400);
+      throw `account ${username} not found`
+    }
+    res.send(account);
+  }
+));
+
+users.post("/login", asyncHandler(
+  async (req, res) => {
+    const loginData = req.body;
+    const accessToken = await userService.login(loginData);
+    if(!accessToken){
+      res.status(400);
+      throw 'Wrong credentials'
+    }
+    res.send({accessToken});
+  }
+));
