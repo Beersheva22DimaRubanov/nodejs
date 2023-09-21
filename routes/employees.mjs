@@ -30,6 +30,9 @@ employees.post('',authVerification("ADMIN"), valid, asyncHandler(
             res.status(400);
             throw `employee with id ${req.body.id} already exists`
         }
+        if(req.wss){
+            req.wss.clients.forEacg(client => client.send(JSON.stringify({op: 'add', data: employee})))
+        }
         res.send(employee);
     }
 ))
@@ -44,6 +47,9 @@ employees.put('/:id',authVerification("ADMIN"), valid, asyncHandler(
             res.status(404);
             throw `employee with id ${req.body.id} doesn't exist`
         }
+        if(req.wss){
+            req.wss.clients.forEacg(client => client.send(JSON.stringify({op: 'update', data: employee})))
+        }
         res.send(employee);
     }
 ))
@@ -52,6 +58,9 @@ employees.delete('/:id',authVerification("ADMIN"), asyncHandler(
         if(!await employeesService.deleteEmployee(+req.params.id)) {
             res.status(404);
             throw `employee with id ${req.params.id} doesn't exist`
+        }
+        if(req.wss){
+            req.wss.clients.forEacg(client => client.send(JSON.stringify({op: 'delete', data: id})))
         }
         res.send();
     }
